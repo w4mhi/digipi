@@ -8,13 +8,10 @@ Craig Lamparter KM6LYW,  2021, MIT Licnese
 modified by W4MHI February 2022
 - see the init_display.py module for display settings
 """
-
+import sys
 import argparse
 import time
 import subprocess
-import digitalio
-import board
-from init_display import *
 import re
 import pyinotify
 import RPi.GPIO as GPIO
@@ -22,6 +19,9 @@ import threading
 import signal
 import os
 import aprslib
+
+sys.path.insert(0, '/home/pi/common')
+from display_util import *
 
 # define some constants to help with graphics layout
 padding = 4
@@ -114,9 +114,9 @@ def handle_changeR(cb):
    with open('/sys/class/gpio/gpio12/value', 'r') as f:          ## RED
       status = f.read(1)
       if status == '0':
-         draw.ellipse(( width - title_bar_height * 2           , padding,    width - title_bar_height - padding * 2 , title_bar_height - padding), fill=(80,0,0,0))
+         draw.ellipse(( width - title_bar_height * 2, padding, width - title_bar_height - padding * 2 , title_bar_height - padding), fill=(80,0,0,0))
       else:
-         draw.ellipse(( width - title_bar_height * 2           , padding,    width - title_bar_height - padding * 2 , title_bar_height - padding), fill=(200,0,0,0))
+         draw.ellipse(( width - title_bar_height * 2, padding, width - title_bar_height - padding * 2 , title_bar_height - padding), fill=(200,0,0,0))
          pass
       with display_lock:
          disp.image(image)
@@ -188,7 +188,7 @@ draw.rectangle((0, 0, width, height), outline=0, fill="#000000")
 
 # Draw our logo
 w,h = font.getsize(title_text)
-draw.text(   (padding * 3  ,  height // 2 - h) ,   title_text, font=font_huge,   fill="#99AA99")
+draw.text((padding * 3,  height // 2 - h) ,   title_text, font=font_huge,   fill="#99AA99")
 with display_lock:
     disp.image(image)
 time.sleep(1)

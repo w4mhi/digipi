@@ -44,9 +44,10 @@ modified by W4MHI February 2022
 import digitalio
 import board
 import threading
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw
 import adafruit_rgb_display.st7789 as st7789
 import RPi.GPIO as GPIO
+from constants import *
 
 # Configuration for CS and DC pins (these are PiTFT defaults):
 cs_pin = digitalio.DigitalInOut(board.CE0)

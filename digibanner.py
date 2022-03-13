@@ -10,30 +10,18 @@ modified by W4MHI February 2022
 - see https://www.delftstack.com/howto/python/get-ip-address-python/ for the ip address
 """
 
+import sys
 import argparse
-import os
-import socket
-from init_display import *
+import time
+from netifaces import interfaces, ifaddresses, AF_INET
 
-# define some constants to help with graphics layout
-padding = 4
-title_bar_height = 34
-
-def extract_ip():
-    st = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    try:
-        st.connect(('10.255.255.255', 1))
-        IP = st.getsockname()[0]
-    except Exception:
-        IP = '127.0.0.1'
-    finally:
-        st.close()
-    return IP
-
+sys.path.insert(0, '/home/pi/common')
+from display_util import *
+from constants import *
 
 def parse_arguments():
     ap = argparse.ArgumentParser()
-    ap.add_argument("-f", "--fontsize", required=False, help="Font size for callsigns")
+    ap.add_argument("-f", "--fontsize", required=False, help="Font size for messages")
     ap.add_argument("-b", "--big", required=False, help="large text to display")
     ap.add_argument("-s", "--small", required=False, help="smaller text underneath")
     args = vars(ap.parse_args())
@@ -42,18 +30,18 @@ def parse_arguments():
 args = parse_arguments()
 
 if args["fontsize"]:
-   # 17 puts 11 lines 2 columns
-   # 20 puts 9 lines
-   # 25 puts 7 lines
-   # 30 puts 6 lines   ** default
-   # 34 puts 5 lines, max width
    fontsize = int(args["fontsize"])
-   if fontsize > 30:
-      print("Look, this display isn't very wide, the maximum font size is 34pts, and you chose " + str(fontsize) + "?")
-      print("Setting to 34 instead.")
+   if fontsize > 34:
+      print("The input: " + str(fontsize) + " is greater than: 34 that is maximum value supported.")
+      print("Setting to maximum value: 34.")
       fontsize = 34
+   elif fontsize < 20:
+      print("The input: " + str(fontsize) + " is lower than: 20 that is minimum value supported.")
+      print("Setting to minimum value: 20.")
+      fontsize = 20
 else:
-   fontsize = 30
+   print("Setting font size to default value: 24.")
+   fontsize = 24
 
 if args["big"]:
    message_big = args["big"]
@@ -63,32 +51,63 @@ else:
 if args["small"]:
    message_small = args["small"]
 else:
-   message_small = "Operational!"
+   message_small = "DigiPi Operational!"
 
+# title
+font_title = get_titlefont()
 
-font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", fontsize)
-line_height = font.getsize("ABCJQ")[1] - 1          # tallest callsign, with dangling J/Q tails
-#max_line_width = font.getsize("   KN6MUC-15")[0] - 1   # longest callsign i can think of in pixels, with spaces for symbol
-#max_cols = width // max_line_width
-font_big = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 24)
-font_huge = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 34)
+# define writing fonts
+font_message = get_writingfont(fontsize)
+spacing = get_spacing(fontsize)
+last_line = get_lastline(fontsize)
 
 # Draw a black filled box to clear the image.
-#draw.rectangle((0, 0, width, height), outline=0, fill=0)
 draw.rectangle((0, 0, width, height), outline=0, fill="#000000")
-draw.rectangle((0, 0, width, 30), outline=0, fill="#333333")
 
 # title bar
-draw.text((10, 0) , "DigiPi", font=font_big, fill="#888888")
+draw.rectangle((0, 0, width, TITLE_BAR_H), outline=0, fill="#333333")
+draw.text((10, 0) , TITLE, font=font_title, fill="#888888")
+
+# ip addresses message
+count = 1
+draw.text((PAD_LEFT, count*spacing), "Net's IP Addresses", font=font_message, fill="#00FF00")
+
+first_pass = True
+ip_present = False
+while ip_present == False:
+   count = 1
+   # ip addresses
+   for ifaceName in interfaces():
+      for i in ifaddresses(ifaceName).setdefault(AF_INET, [{'addr':'No IP yet'}]):
+         if ifaceName.startswith("wlan") or ifaceName.startswith("eth"):
+            # increment for interface name
+            count = count + 1
+            if first_pass:
+               # show the interface name
+               draw.text((PAD_LEFT, count*spacing), "[" + ifaceName  + "]", font=font_message, fill="#00FF00")
+
+            # increment for the ip address
+            count = count + 1
+            #delete the previous line if exists
+            draw.rectangle((0, count*spacing, width, (count+1)*spacing), outline=0, fill="#000000")
+            draw.text((4*PAD_LEFT, count*spacing), i['addr'], font=font_message, fill="#00FF00")
+
+            if i['addr'].startswith('No IP') == False:
+               ip_present = True
+   disp.image(image)
+   first_pass = False
+   # wait and re-iterate if no ip address
+   if ip_present == False:
+      time.sleep(3)
 
 # message
-draw.text((10, height * .33 + font.getsize("MMM")[1] + 8), message_small, font=font, fill="#666666")
-
-# ip address
-draw.text((10, height * .33 ), extract_ip(), font=font_big, fill="#888888")
-print("DigiPi operational!\n")
+count = count + 1
+if last_line >= count:
+  draw.text((PAD_LEFT, last_line*spacing), message_small, font=font_message, fill="#FFFF00")
 
 #with display_lock:
 disp.image(image)
 
+print("DigiPi operational!\n")
 exit(0)
+

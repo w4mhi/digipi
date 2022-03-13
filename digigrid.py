@@ -1,91 +1,189 @@
 #!/usr/bin/python3
-
-# direwatch
+# digigrid
 
 """
-Craig Lamparter KM6LYW,  2021, MIT License
+Mihai W4MHI,  2022, MIT License
 
-GpsPoller Written by Dan Mandle http://dan.mandle.me September 2012
-License: GPL 2.0
-
-modified by W4MHI February 2022
-- see the init_display.py module for display settings
-- see https://gpsd.gitlab.io/gpsd/gpsd_json.html for json format
-- see https://github.com/space-physics/maidenhead for maidenhead grid
-- install 'pip install maidenhead'
+synopsis:
+Print at DigiPi screen the GPS coordinates and Maidenhead grid.
 """
-
-import time
+import sys
 import threading
-import maidenhead as mh
+import argparse
+from datetime import datetime
 from gps import *
-from init_display import *
 
-def timer(timeout):
-  pad_str = ' ' * len('%d' % timeout)
-  for i in range(timeout, 0, -1):
-    sys.stdout.write('GPS reading in %d seconds %s\r' % (i, pad_str),)
-    sys.stdout.flush()
-    time.sleep(1)
+sys.path.insert(0, '/home/pi/common')
+from constants import *
+from display_util import *
+from time_util import *
+
+try:
+    import maidenhead
+except ImportError:
+    exit("This script requires the requests module\nInstall with: sudo pip install maidenhead")
+
+def parse_arguments():
+  ap = argparse.ArgumentParser()
+  ap.add_argument("-c", "--continous", required=False, help="Continous running. True/False")
+  ap.add_argument("-r", "--refresh", required=False, help="GPS data refresh. Default is the minimum value of 3, the maximum value is 60, in seconds.")
+  ap.add_argument("-d", "--debug", required=False, help="GPS data printed to the console for debugging purpose. True/False")
+  args = vars(ap.parse_args())
+  return args
 
 class GpsPoller(threading.Thread):
   def __init__(self):
     threading.Thread.__init__(self)
-    global gpsd #bring it in scope
-    gpsd = gps(mode=WATCH_ENABLE) #starting the stream of info
+    self.session = gps(mode=WATCH_ENABLE)
     self.current_value = None
-    self.running = True #setting the thread running to true
+    self.running = True
+
+  def get_current_value(self):
+    return self.current_value
 
   def run(self):
-    global gpsd
     try:
-      while gpsp.running:
-        self.current_value = gpsd.next() #this will continue to loop and grab EACH set of gpsd info to clear the buffer
+      while self.running:
+        self.current_value = self.session.next()
     except StopIteration:
       pass
 
 if __name__ == '__main__':
-  # define some constants to help with graphics layout
-  padding = 4
-  title_bar_height = 34
-  fontsize = 30
+  # debug flag
+  debug = False
 
-  font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", fontsize)
-  line_height = font.getsize("ABCJQ")[1] - 1          # tallest callsign, with dangling J/Q tails
-  font_big = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 24)
-  font_small = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 20)
+  # type of running
+  continous = False
+
+  # refresh time
+  refresh_time = 3
+
+  # painted screen flag
+  painted_screen = False
+
+  # sum control for refresh
+  old = new = 0
+
+  args = parse_arguments()
+
+  if(args["continous"]):
+    continous = bool(args["continous"])
+
+  if(args["debug"]):
+    debug = bool(args["debug"])
+
+  if(args["refresh"]):
+    refresh_time = int(args["refresh"])
+
+  if(refresh_time < 2):
+    print("Input value is lower than the minimum acceptable (3s). Refresh time set to 3 seconds.")
+    refresh_time = 3
+
+  if(refresh_time > 60):
+    print("Input value is higher than the maximum acceptable (60s). Refresh time set to 60 seconds.")
+    refresh_time = 60
+
+  # title
+  font_title = get_titlefont()
+
+  # define writing fonts
+  fontsize = 28
+  font_message = get_writingfont(fontsize)
+  spacing = get_spacing(fontsize)
 
   # Draw a black filled box to clear the image.
   draw.rectangle((0, 0, width, height), outline=0, fill="#000000")
-  draw.rectangle((0, 0, width, 30), outline=0, fill="#333333")
 
   # title bar
-  draw.text((10, 0) , "DigiPi GPS", font=font_big, fill="#888888")
+  draw.rectangle((0, 0, width, TITLE_BAR_H), outline=0, fill="#333333")
+  draw.text((10, 0) , TITLE + "GPS [" + str(refresh_time) + "s]", font=font_title, fill="#888888")
 
-  gpsd = None #seting the global variable
-  gpsp = GpsPoller() # create the thread
-  gpsp.start() # start it up
+  # create the thread
+  gpsp = GpsPoller()
 
-  # refresh the data at every # seconds
-  timer(3)
-  gpsp.running = False
-  gpsp.join() # wait for the thread to finish what it's doing
-  print ("Done. Display results...")
+  try:
+    gpsp.start()
 
-  # display the gps data + grid
-  height = font.getsize("MMM")[1] + 6
-  lat = str(float("{0:.4f}".format(gpsd.fix.latitude)))
-  lon = str(float("{0:.4f}".format(gpsd.fix.longitude)))
-  alt = str(float("{0:.2f}".format(gpsd.fix.altitude/.3048)))
-  utc = datetime.fromisoformat(str(gpsd.fix.time).replace('Z', '+00:00')).strftime('%Y-%m-%d %H:%M:%S')
+    while True:
+      # default data
+      utc_d = 'NaN'
+      utc_t = 'NaN'
+      lat = 'NaN'
+      lon = 'NaN'
+      alt = 'NaN'
+      fix = 'NaN'
+      grid = 'NaN'
 
-  draw.text((5, 1*height), "UTC: "+ utc, font=font_small, fill="#888888")
-  draw.text((5, 2*height), "LAT: " + lat, font=font_big, fill="#888888")
-  draw.text((5, 3*height), "LON: " + lon, font=font_big, fill="#888888")
-  draw.text((5, 4*height), "ALT: " + alt, font=font_big, fill="#888888")
-  draw.text((5, 5*height), "FIX: " + str(gpsd.fix.mode) + "D", font=font_big, fill="#888888")
-  draw.text((5, 6*height), "GRID: " + mh.to_maiden(gpsd.fix.latitude, gpsd.fix.longitude), font=font_big, fill="#888888")
+      report = gpsp.get_current_value()
+      isvalidreport = report != None and 'epx' in list(report.keys())
+      if (isvalidreport):
+        lat = str(float("{0:.4f}".format(report.lat)))
+        lon = str(float("{0:.4f}".format(report.lon)))
+        alt = str(float("{0:.2f}".format(report.alt/.3048)))
+        utc_d = datetime.fromisoformat(str(report.time).replace('Z', '+00:00')).strftime('%Y-%m-%d')
+        utc_t = datetime.fromisoformat(str(report.time).replace('Z', '+00:00')).strftime('%H:%M:%S')
+        fix = str(report.mode) + "D"
+        grid = maidenhead.to_maiden(report.lat, report.lon)
+        new = hash("[" +  str(float("{0:.2f}".format(report.lat))) + "]:[" + str(float("{0:.2f}".format(report.lon))) + "]:["+ str(float("{0:.0f}".format(report.alt))) + "]")
 
-  disp.image(image)
-  print("Exiting.")
+      if(report != None and old != new):
+        old = new
+        print("Refresh display, new data")
+        # Draw a black filled box to clear the image.
+        draw.rectangle((0, spacing, width, height), outline=0, fill="#000000")
+        disp.image(image)
+
+        # display the gps data + grid
+        draw.text((5, 1*spacing), "UTC: "+ utc_d, font=font_message, fill="#00FF00")
+        draw.text((5, 2*spacing), "UTC: "+ utc_t, font=font_message, fill="#00FF00")
+        draw.text((5, 3*spacing), "LAT: " + lat + "°", font=font_message, fill="#FFFF00")
+        draw.text((5, 4*spacing), "LON: " + lon + "°", font=font_message, fill="#FFFF00")
+        draw.text((5, 5*spacing), "ALT: " + alt + "ft", font=font_message, fill="#0000FF")
+        draw.text((5, 6*spacing), "FIX: " + fix, font=font_message, fill="#888888")
+        draw.text((5, 7*spacing), "GRID: " + grid, font=font_message, fill="#FF0000")
+
+      if(painted_screen == False):
+        # Draw a black filled box to clear the image.
+        draw.rectangle((0, spacing, width, height), outline=0, fill="#000000")
+        disp.image(image)
+
+        # warning for the waiting time
+        draw.text((5, 1*spacing), "Waiting for data...", font=font_message, fill="#00FF00")
+        draw.text((5, 2*spacing), str(refresh_time) + "s", font=font_message, fill="#FFFF00")
+
+        # no need another warning
+        painted_screen = True
+
+      disp.image(image)
+
+      # debug
+      if(debug and isvalidreport):
+        print("---------------GPS reading---------------")
+        print("latitude    " , report.lat)
+        print("longitude   " , report.lon)
+        print("time utc    " , report.time)
+        print("altitude (m)" , report.alt)
+        print("eps         " , report.eps)
+        print("epx         " , report.epx)
+        print("epv         " , report.epv)
+        print("ept         " , report.ept)
+        print("speed (m/s) " , report.speed)
+        print("climb       " , report.climb)
+        print("mode        " , report.mode)
+      else:
+        print("Waiting for data...")
+
+      if(continous == False and isvalidreport):
+        gpsp.running = False
+        gpsp.join()
+        break
+
+      # refresh the data at every # seconds
+      timer(refresh_time)
+  except (KeyboardInterrupt, SystemExit):
+    print ("The thread ended.")
+    gpsp.running = False
+    gpsp.join()
+
+  print("Done. Exiting.")
 
