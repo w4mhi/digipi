@@ -5,11 +5,11 @@ In this repository are modified files or additional files to the project.
 Clone the repository with command `https://github.com/w4mhi/digipi.git`, then `cd digipi` to get access to the files.
 
 DigiBanner has a new look, so it needs to run at boot without being overwritten by the DigiPi TNC.
-The following changes needs to be made in the `/etc/rc.local`
-    * `sudo remount`
-    * `sudo nano /etc/rc.local`
-    * look for `/home/pi/digibanner.py -b DigiPi -s "     v1.6" &` and add 4 spaces (that will align better the version with title)
-    * prefix the line `service tnc start` with `#` (practically comment the line)
+The following changes needs to be made in the `/etc/rc.local`.
+    - `sudo remount`
+    - `sudo nano /etc/rc.local`
+    - look for `/home/pi/digibanner.py -b DigiPi -s "     v1.6" &` and add 4 spaces (that will align better the version with title)
+    - prefix the line `service tnc start` with `#` (practically comment the line)
 
 `Release note:` copy the files from `digipi` folder to the parent folder `/home/pi`. Same with the `common` and `config` folder. Veify the files digi*.py have executable rights.
 If they are not execuatble, use the command `chmod +x direwatch.py` for example.
@@ -19,24 +19,24 @@ This program will show some information from the GPS including the Maidehead Gri
 The assumption is the DigiPi is connected to a GPS source, like ICOM-705 with the USB OUT setup to GPS Data.
 
 The program has dependency on the Maidenhead module.
-    * `sudo remount` to make the file system writeable.
-    * `pip3 install maidenhead` will install the module in a folder that is not in the path.
-    * save changes from the DigiPi
+    - `sudo remount` to make the file system writeable.
+    - `pip3 install maidenhead` will install the module in a folder that is not in the path.
+    - save changes from the DigiPi
 
 The following steps are to verify if the operator has GPS data. All commands require RasPi shell.
 
 Check if services are working:
-    * `systemctl is-active gpsd`
-    * `systemctl is-active chronyd`
+    - `systemctl is-active gpsd`
+    - `systemctl is-active chronyd`
 
 Check data with:
-    * `cgps -s`
+    - `cgps -s`
 
 If data doesn't show on the screen, restart the services with the following commands. For authentication choose `1` and use the `pi` account password.
-`systemctl stop gpsd.socket`
-`systemctl stop gpsd`
-`systemctl start gpsd`
-`systemctl start gpsd.socket`
+    - `systemctl stop gpsd.socket`
+    - `systemctl stop gpsd`
+    - `systemctl start gpsd`
+    - `systemctl start gpsd.socket`
 
 Verify the data is present with `cgps -s`.
 
@@ -65,9 +65,9 @@ Command line parameters:
 
 ## Installation
 The GPS grid can be installed in the main dashboard of the DigiPi as a service.
-    * copy the `bash` folder to the `/home/pi` per `Release notes`.
-    * give executable rights with `sudo chmod +x weather.sh` and `sudo chmod +x gpsgrid.sh`
-    * create a new service, for example `gpsgrid` by running `sudo nano /etc/systemd/system/gpsgrid.service`
+    - copy the `bash` folder to the `/home/pi` per `Release notes`.
+    - give executable rights with `sudo chmod +x weather.sh` and `sudo chmod +x gpsgrid.sh`
+    - create a new service, for example `gpsgrid` by running `sudo nano /etc/systemd/system/gpsgrid.service`
     Add the following lines:
     ```console
     [Unit]
@@ -82,13 +82,14 @@ The GPS grid can be installed in the main dashboard of the DigiPi as a service.
     [Install]
     WantedBy=multi-user.target
     ```
-    The ExecStartPre section will stop all current services to let the current service to run.
+    `Note:` The ExecStartPre section will stop all current services to let the current service to run.
 
-    * change the service permissions to 644 with `sudo chmod 644 /etc/systemd/system/gpsgrid.service`
-    * enable the service `sudo systemctl enable gpsgrid.service`
-    * reload the daemon for services `sudo systemctl daemon-reload`
-    * edit the `index.php` to add the service to the dashboard with `sudo nano /var/www/html/index.php`
-    * look for a similar section and insert the following one
+    - change the service permissions to 644 with `sudo chmod 644 /etc/systemd/system/gpsgrid.service`
+    - enable the service `sudo systemctl enable gpsgrid.service`
+    - reload the daemon for services `sudo systemctl daemon-reload`
+    - edit the `index.php` to add the service to the dashboard with `sudo nano /var/www/html/index.php`
+    - look for a similar section and insert the following one
+
     ```php
     if (isset($_POST["gpsgrid"])) {
         $submit = $_POST["gpsgrid"];
@@ -103,7 +104,9 @@ The GPS grid can be installed in the main dashboard of the DigiPi as a service.
         }
     }
     ```
-    * navigate down in the file code until the similar section is met and insert the following code:
+
+    - navigate down in the file code until the similar section is met and insert the following code:
+    
     ```php
     #-- GPS GRID -------------------------------------------------
     echo "<tr>";
@@ -131,11 +134,13 @@ The GPS grid can be installed in the main dashboard of the DigiPi as a service.
     echo "</font>";
     echo "</td></tr>";
     ```
-    * find where the service are called for shutdown and insert the followingcode:
+
+    - find where the service are called for shutdown and insert the followingcode:
+    
     ```php
     $output = shell_exec('sudo systemctl reset-failed gpsgrid');
     ```   
-   * restart the DigiPi with `sudo reboot` to make sure the system is in the read-only mode
+    - restart the DigiPi with `sudo reboot` to make sure the system is in the read-only mode
 
 ## Documentation for debugging
 - see the init_display.py module for display settings
