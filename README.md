@@ -26,16 +26,16 @@ The program has dependency on the Maidenhead module.
 The following steps are to verify if the operator has GPS data. All commands require RasPi shell.
 
 Check if services are working:
-> `systemctl is-active gpsd`
-> `systemctl is-active chronyd`
+> - `systemctl is-active gpsd`
+> - `systemctl is-active chronyd`
 
 Check data with `cgps -s`.
 
 If data doesn't show on the screen, restart the services with the following commands. For authentication choose `1` and use the `pi` account password.
-> `systemctl stop gpsd.socket`
-> `systemctl stop gpsd`
-> `systemctl start gpsd`
-> `systemctl start gpsd.socket`
+> - `systemctl stop gpsd.socket`
+> - `systemctl stop gpsd`
+> - `systemctl start gpsd`
+> - `systemctl start gpsd.socket`
 
 Verify the data is present with `cgps -s`.
 
@@ -146,9 +146,10 @@ $output = shell_exec('sudo systemctl reset-failed gpsgrid');
 - see the init_display.py module for display settings
 - see https://gpsd.gitlab.io/gpsd/gpsd_json.html for json format
 - see https://github.com/space-physics/maidenhead for maidenhead grid
-- see for GpsPoller: https://github.com/timmyreilly/BumpyRoads/blob/master/RaspberryPiFiles
--              https://stackoverflow.com/questions/6146131/python-gps-module-reading-latest-gps-data
--              http://www.danmandle.com/blog/getting-gpsd-to-work-with-python/
+- see for GpsPoller:
+* https://github.com/timmyreilly/BumpyRoads/blob/master/RaspberryPiFiles
+* https://stackoverflow.com/questions/6146131/python-gps-module-reading-latest-gps-data
+* http://www.danmandle.com/blog/getting-gpsd-to-work-with-python/
 - see for service under RasPi https://gist.github.com/emxsys/a507f3cad928e66f6410e7ac28e2990f
 - also https://www.thedigitalpictureframe.com/ultimate-guide-systemd-autostart-scripts-raspberry-pi/
 
