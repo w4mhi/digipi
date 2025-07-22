@@ -1,34 +1,71 @@
-Overview
-===============
-The DigiPi project can be seen at http://craiger.org/digipi/
-In this repository are modified files or additional files to the project.
-Clone the repository with command `https://github.com/w4mhi/digipi.git`, then `cd digipi` to get access to the files.
+# DigiPi Project
 
-`Release note:` 
-- copy the files from `bash` folder to the parent folder `/home/pi`.
-- copy folders `common` and `config` in `/home/pi`.
-- verify the files digiweather.py have executable rights.
+The DigiPi project enhances the original DigiPi (see [project site](http://craiger.org/digipi/)) with additional and modified files.  
+Clone this repository with:
 
-Use the command `chmod +x digiweather.py` for example. Do the same for `weather.sh`
+```sh
+git clone https://github.com/w4mhi/digipi.git
+cd digipi
+```
+
+## Release Notes
+
+- Copy files from the `bash` folder to `/home/pi`.
+- Copy the `common` and `config` folders to `/home/pi`.
+
+---
+
+## Backup & Restore
+
+The `backup` folder contains scripts for backing up and restoring DigiPi configurations.
+
+**Typical workflow:**
+1. Set up Wi-Fi and SSH into your DigiPi.
+2. Use the backup script to save the original files (e.g., `/home/pi/backup/clean`).
+3. Configure DigiPi at [http://digipi.local/](http://digipi.local/).
+
+**To re-configure:**
+1. Use the backup script to save your current config (e.g., `/home/pi/backup/IC-705` for IC-705).
+2. Restore original files and delete `/var/cache/digipi/localized.txt`.
+3. Reconfigure DigiPi as needed.
+4. Use the backup script again for new configurations (e.g., `/home/pi/backup/alinco` for Alinco).
+
+---
 
 ## DigiWeather
-This program will show information from the weather in the desired location. The location is configured in the `configuration` folder.
-Copy the font from `fonts` to a permanent location with `sudo cp weathericons-regular-webfont.ttf /usr/share/fonts/truetype/weather/weathericons-regular-webfont.ttf`.
 
-The `weather.ini` has couple of parameters that can be changed. The <weather-api-key> can be requested for free from https://openweathermap.org/api
+DigiWeather displays weather information for a configured location.
 
-Run the file with the python command `digiweather.py`.
+### Setup
 
-Command line parameters:
-`"-c", "--continous"`   - optional parameter used for continous running. Accepted values: `True/False"`
+1. Copy the font from `fonts`:
+   ```sh
+   sudo cp weathericons-regular-webfont.ttf /usr/share/fonts/truetype/weather/weathericons-regular-webfont.ttf
+   ```
+2. Ensure `digiweather.py` and `weather.sh` are executable:
+   ```sh
+   chmod +x digiweather.py weather.sh
+   ```
+3. Edit `weather.ini` to set parameters.  
+   Obtain a free API key from [OpenWeatherMap](https://openweathermap.org/api).
 
-`"-r", "--refresh"`     - optional parameter used for GPS data refresh. Default is the minimum value of 3, the maximum value is 60, in seconds.
+### Usage
 
-`"-f", "--flip"`        - optional parameter used to refresh the screen data between the overview and detailed weather information. Default is the minimum value of 5, the maximum value is 30, in seconds.
+Run DigiWeather with:
+```sh
+python digiweather.py
+```
 
-`"-d", "--debug"`       - optional parameter used to print the GPS data to the console for debugging purpose. Accepted values: `True/False"`
+#### Command Line Parameters
 
-Thank you for trying the files and the original project!
-73!
+- `-c`, `--continous` : Run continuously (`True`/`False`)
+- `-r`, `--refresh`   : GPS data refresh interval (3–60 seconds, default: 3)
+- `-f`, `--flip`      : Screen refresh interval (5–30 seconds, default: 5)
+- `-d`, `--debug`     : Print GPS data for debugging (`True`/`False`)
+
+---
+
+Thank you for trying these files and supporting the original project!  
+**73!**
 
 
